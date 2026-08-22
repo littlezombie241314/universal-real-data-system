@@ -1,0 +1,2844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNIVERSAL REAL DATA SYSTEM v∞ | 全宇宙真实数据系统</title>
+<style>
+
+/* ========== CSS VARIABLES ========== */
+:root {
+  --bg-deep: #030a16;
+  --bg-panel: rgba(8, 20, 38, 0.72);
+  --bg-panel-solid: #0a1a30;
+  --cyan: #00f0ff;
+  --cyan-dim: #00a8b8;
+  --green: #00ff88;
+  --green-dim: #00b860;
+  --magenta: #ff2d95;
+  --magenta-dim: #b81d68;
+  --amber: #ffb020;
+  --amber-dim: #b87d12;
+  --red: #ff3b5c;
+  --text-primary: #d4f1ff;
+  --text-secondary: #6a90b5;
+  --text-muted: #3d5a78;
+  --border-cyan: rgba(0, 240, 255, 0.35);
+  --border-dim: rgba(0, 240, 255, 0.15);
+  --glow-cyan: 0 0 12px rgba(0, 240, 255, 0.5);
+  --glow-green: 0 0 10px rgba(0, 255, 136, 0.5);
+  --glow-magenta: 0 0 12px rgba(255, 45, 149, 0.5);
+  --glow-amber: 0 0 10px rgba(255, 176, 32, 0.5);
+  --font-mono: 'JetBrains Mono', 'Share Tech Mono', 'Courier New', monospace;
+}
+
+/* ========== RESET & BASE ========== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%;
+  font-family: var(--font-mono);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: hidden;
+  min-width: 1280px;
+}
+body { position: relative; }
+
+/* ========== CANVAS BACKGROUNDS ========== */
+#starfield {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+#grid-overlay {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+#scanlines {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.08) 3px,
+    rgba(0, 0, 0, 0.08) 3px
+  );
+  animation: scanShift 8s linear infinite;
+}
+@keyframes scanShift {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 60px; }
+}
+
+/* ========== BOOT SCREEN ========== */
+#boot-screen {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: var(--bg-deep);
+  z-index: 9999;
+  padding: 40px;
+  overflow-y: auto;
+  transition: opacity 1s ease, visibility 1s ease;
+}
+#boot-screen.hidden {
+  opacity: 0; visibility: hidden;
+}
+#boot-screen .boot-logo {
+  color: var(--cyan);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  margin-bottom: 20px;
+  text-shadow: var(--glow-cyan);
+}
+#boot-screen .boot-line {
+  color: var(--green);
+  font-size: 12px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+#boot-screen .boot-line.cyan { color: var(--cyan); }
+#boot-screen .boot-line.magenta { color: var(--magenta); }
+#boot-screen .boot-line.amber { color: var(--amber); }
+#boot-screen .boot-line.dim { color: var(--text-muted); }
+#boot-screen .boot-cursor {
+  display: inline-block;
+  width: 8px; height: 14px;
+  background: var(--green);
+  animation: blink 1s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: 2px;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ========== MAIN LAYOUT ========== */
+#app {
+  position: relative;
+  z-index: 10;
+  width: 100%; height: 100vh;
+  display: flex; flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+#app.visible { opacity: 1; }
+
+/* ========== TOP NAVBAR ========== */
+.navbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  height: 56px;
+  background: linear-gradient(180deg, rgba(0, 40, 80, 0.6) 0%, rgba(0, 20, 40, 0.3) 100%);
+  border-bottom: 1px solid var(--border-cyan);
+  position: relative;
+  flex-shrink: 0;
+}
+.navbar::before {
+  content: '';
+  position: absolute; bottom: -1px; left: 0;
+  width: 200px; height: 1px;
+  background: var(--cyan);
+  box-shadow: var(--glow-cyan);
+}
+.nav-left { display: flex; align-items: center; gap: 24px; }
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+.nav-logo .infinity {
+  color: var(--cyan);
+  font-size: 22px;
+  text-shadow: var(--glow-cyan);
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { text-shadow: 0 0 12px rgba(0, 240, 255, 0.5); }
+  50% { text-shadow: 0 0 24px rgba(0, 240, 255, 0.9); }
+}
+.nav-logo .title-main { color: var(--cyan); font-size: 14px; }
+.nav-logo .title-sub { color: var(--text-secondary); font-size: 10px; letter-spacing: 2px; margin-top: 1px; }
+
+.nav-status { display: flex; align-items: center; gap: 16px; }
+.status-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  font-size: 11px;
+  color: var(--green);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+.status-chip.amber {
+  background: rgba(255, 176, 32, 0.08);
+  border-color: rgba(255, 176, 32, 0.3);
+  color: var(--amber);
+}
+.status-chip.magenta {
+  background: rgba(255, 45, 149, 0.08);
+  border-color: rgba(255, 45, 149, 0.3);
+  color: var(--magenta);
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+.nav-right { display: flex; align-items: center; gap: 18px; }
+.nav-clock {
+  font-size: 14px;
+  color: var(--cyan);
+  letter-spacing: 2px;
+  text-shadow: var(--glow-cyan);
+  font-weight: 500;
+}
+.nav-clock .date { color: var(--text-secondary); font-size: 10px; letter-spacing: 1px; display: block; text-align: right; margin-bottom: 1px;}
+.lang-picker {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid var(--border-dim);
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+.lang-picker:hover { color: var(--cyan); border-color: var(--border-cyan); }
+
+/* ========== HERO DATA DASHBOARD ========== */
+.hero-dashboard {
+  padding: 16px 24px 12px;
+  flex-shrink: 0;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.hero-card {
+  position: relative;
+  padding: 14px 18px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  backdrop-filter: blur(8px);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  overflow: hidden;
+}
+.hero-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--cyan);
+  box-shadow: var(--glow-cyan);
+}
+.hero-card.green::before { background: var(--green); box-shadow: var(--glow-green); }
+.hero-card.magenta::before { background: var(--magenta); box-shadow: var(--glow-magenta); }
+.hero-card.amber::before { background: var(--amber); box-shadow: var(--glow-amber); }
+.hero-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.hero-label .unit { color: var(--text-muted); font-size: 9px; }
+.hero-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.hero-card.green .hero-value { color: var(--green); text-shadow: var(--glow-green); }
+.hero-card.magenta .hero-value { color: var(--magenta); text-shadow: var(--glow-magenta); }
+.hero-card.amber .hero-value { color: var(--amber); text-shadow: var(--glow-amber); }
+.hero-sub {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex; justify-content: space-between;
+}
+.hero-sub .trend { color: var(--green); }
+.hero-sub .trend.down { color: var(--red); }
+
+/* ========== STATS BAR ========== */
+.stats-bar {
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 8px 24px;
+  background: linear-gradient(90deg, rgba(0, 40, 80, 0.3), rgba(0, 60, 100, 0.15), rgba(0, 40, 80, 0.3));
+  border-top: 1px solid var(--border-dim);
+  border-bottom: 1px solid var(--border-dim);
+  flex-shrink: 0;
+}
+.stat-item {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px;
+}
+.stat-item .stat-val {
+  font-size: 14px; font-weight: 600;
+  color: var(--cyan);
+  font-variant-numeric: tabular-nums;
+}
+.stat-item .stat-label {
+  font-size: 9px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.stat-divider {
+  width: 1px; height: 28px;
+  background: linear-gradient(180deg, transparent, var(--border-cyan), transparent);
+}
+
+/* ========== TABS ========== */
+.tab-bar {
+  display: flex; align-items: flex-end;
+  padding: 10px 24px 0;
+  gap: 2px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-dim);
+  overflow-x: auto;
+}
+.tab-item {
+  position: relative;
+  padding: 8px 16px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-bottom: none;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  display: flex; align-items: center; gap: 6px;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+.tab-item:hover {
+  color: var(--cyan);
+  background: rgba(0, 240, 255, 0.05);
+}
+.tab-item.active {
+  color: var(--cyan);
+  background: var(--bg-panel);
+  border-color: var(--border-cyan);
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+.tab-item.active::after {
+  content: '';
+  position: absolute; bottom: -1px; left: 0; right: 0;
+  height: 1px;
+  background: var(--bg-panel-solid);
+}
+.tab-icon { font-size: 14px; }
+
+/* ========== MAIN CONTENT ========== */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px 60px;
+  position: relative;
+}
+.main-content::-webkit-scrollbar { width: 6px; }
+.main-content::-webkit-scrollbar-track { background: rgba(0, 240, 255, 0.05); }
+.main-content::-webkit-scrollbar-thumb { background: var(--border-cyan); }
+
+.tab-panel { display: none; animation: fadeIn 0.4s ease; }
+.tab-panel.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== PANEL STYLES ========== */
+.panel {
+  position: relative;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  backdrop-filter: blur(6px);
+  margin-bottom: 16px;
+}
+.panel::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 24px; height: 1px;
+  background: var(--cyan);
+  box-shadow: var(--glow-cyan);
+}
+.panel::after {
+  content: '';
+  position: absolute; bottom: 0; right: 0;
+  width: 24px; height: 1px;
+  background: var(--cyan);
+  box-shadow: var(--glow-cyan);
+}
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-dim);
+  position: relative;
+}
+.panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 1.5px;
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-title::before {
+  content: '▸';
+  color: var(--green);
+  font-size: 10px;
+}
+.panel-tag {
+  font-size: 9px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border: 1px solid var(--border-dim);
+  letter-spacing: 1px;
+}
+.panel-body { padding: 14px 16px; }
+
+/* Panel grid helpers */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+/* ========== NODE MATRIX (Tab 2) ========== */
+.node-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.node-card {
+  position: relative;
+  padding: 14px;
+  background: rgba(0, 30, 60, 0.4);
+  border: 1px solid var(--border-dim);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+.node-card:hover {
+  border-color: var(--cyan);
+  background: rgba(0, 60, 100, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 240, 255, 0.2);
+}
+.node-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.node-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.node-status {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+.node-status.online { color: var(--green); }
+.node-status.sync { color: var(--cyan); }
+.node-status.maintenance { color: var(--amber); }
+.node-status .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+.node-platform {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+.node-metrics {
+  display: flex; flex-direction: column; gap: 4px;
+  margin-bottom: 8px;
+}
+.node-metric {
+  display: flex; justify-content: space-between;
+  font-size: 10px;
+}
+.node-metric .label { color: var(--text-secondary); }
+.node-metric .val { color: var(--cyan); font-variant-numeric: tabular-nums; }
+.node-address {
+  font-size: 9px;
+  color: var(--text-muted);
+  word-break: break-all;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-dim);
+  font-family: var(--font-mono);
+}
+
+/* ========== TERMINAL LOG ========== */
+.terminal-log {
+  background: rgba(0, 10, 20, 0.8);
+  border: 1px solid var(--border-dim);
+  padding: 10px 12px;
+  height: 220px;
+  overflow-y: auto;
+  font-size: 11px;
+  line-height: 1.7;
+  font-family: var(--font-mono);
+}
+.terminal-log::-webkit-scrollbar { width: 4px; }
+.terminal-log::-webkit-scrollbar-thumb { background: var(--border-cyan); }
+.log-line { white-space: pre-wrap; word-break: break-all; }
+.log-line .ts { color: var(--text-muted); }
+.log-line.info .msg { color: var(--cyan); }
+.log-line.ok .msg { color: var(--green); }
+.log-line.warn .msg { color: var(--amber); }
+.log-line.err .msg { color: var(--red); }
+.log-line.data .msg { color: var(--magenta); }
+.log-prompt {
+  color: var(--green);
+  margin-top: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+.log-prompt .cursor {
+  display: inline-block; width: 7px; height: 12px;
+  background: var(--green);
+  animation: blink 1s step-end infinite;
+}
+
+/* ========== DATA SOURCE LIST (Tab 3) ========== */
+.source-list { display: flex; flex-direction: column; gap: 8px; }
+.source-item {
+  display: grid;
+  grid-template-columns: 24px 1fr 100px 100px 70px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(0, 20, 40, 0.5);
+  border-left: 2px solid var(--green);
+  font-size: 11px;
+  transition: background 0.2s;
+}
+.source-item:hover { background: rgba(0, 40, 80, 0.6); }
+.source-item .icon { color: var(--cyan); font-size: 16px; text-align: center; }
+.source-item .name { color: var(--text-primary); font-weight: 500; }
+.source-item .rate { color: var(--green); text-align: right; font-variant-numeric: tabular-nums; }
+.source-item .bandwidth { color: var(--cyan); text-align: right; font-variant-numeric: tabular-nums; }
+.source-item .status {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--green);
+}
+.source-item .status.idle { color: var(--text-muted); }
+.source-item .status.active { color: var(--green); }
+
+/* Progress bar */
+.progress-bar {
+  height: 4px;
+  background: rgba(0, 240, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  margin: 4px 0;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--green));
+  box-shadow: 0 0 6px var(--cyan);
+  transition: width 0.3s ease;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute; top: 0; right: 0;
+  width: 20px; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: progressShine 1.5s linear infinite;
+}
+@keyframes progressShine {
+  0% { transform: translateX(-40px); }
+  100% { transform: translateX(20px); }
+}
+
+/* ========== CHARTS (Tab 4) ========== */
+.chart-container {
+  width: 100%; height: 260px;
+  position: relative;
+}
+.chart-container canvas { width: 100%; height: 100%; }
+.chart-mini { height: 140px; }
+
+/* ========== PIE CHART LEGEND ========== */
+.pie-legend {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-top: 10px;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px;
+}
+.legend-color {
+  width: 12px; height: 12px;
+  border-radius: 2px;
+}
+.legend-label { color: var(--text-secondary); flex: 1; }
+.legend-val { color: var(--cyan); font-variant-numeric: tabular-nums; }
+
+/* ========== ALERT TABLE (Tab 7) ========== */
+.alert-list { display: flex; flex-direction: column; gap: 6px; }
+.alert-item {
+  display: grid;
+  grid-template-columns: 80px 1fr 120px 140px 90px 80px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(0, 15, 30, 0.6);
+  border-left: 3px solid var(--red);
+  font-size: 11px;
+  transition: background 0.2s;
+}
+.alert-item:hover { background: rgba(0, 30, 60, 0.6); }
+.alert-item.warning { border-left-color: var(--amber); }
+.alert-item.info { border-left-color: var(--cyan); }
+.alert-severity {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.alert-item .alert-severity { color: var(--red); text-align: center; }
+.alert-item.warning .alert-severity { color: var(--amber); }
+.alert-item.info .alert-severity { color: var(--cyan); }
+.alert-desc { color: var(--text-primary); }
+.alert-node { color: var(--text-secondary); text-align: center; }
+.alert-time { color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
+.alert-status {
+  text-align: center;
+  font-size: 10px;
+  padding: 3px 8px;
+  border: 1px solid var(--border-dim);
+  color: var(--text-secondary);
+  justify-self: center;
+}
+.alert-action {
+  text-align: center;
+  color: var(--cyan);
+  cursor: pointer;
+  font-size: 10px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  justify-self: end;
+}
+.alert-action:hover { color: var(--green); }
+
+/* Alert filter bar */
+.alert-filter {
+  display: flex; gap: 8px;
+  margin-bottom: 12px;
+}
+.filter-chip {
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-chip:hover { border-color: var(--border-cyan); color: var(--cyan); }
+.filter-chip.active {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  background: rgba(0, 240, 255, 0.1);
+  box-shadow: var(--glow-cyan);
+}
+
+/* ========== ACCESS ENTRIES (Tab 6) ========== */
+.access-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.access-card {
+  position: relative;
+  padding: 14px 16px;
+  background: rgba(0, 25, 50, 0.5);
+  border: 1px solid var(--border-dim);
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+.access-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.access-platform {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 600;
+  color: var(--cyan);
+  font-size: 13px;
+}
+.access-platform .ico { font-size: 18px; }
+.access-indicator {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.access-url {
+  font-size: 11px;
+  color: var(--green);
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px dashed var(--border-dim);
+  margin-bottom: 10px;
+  word-break: break-all;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+.access-url .copy-btn {
+  font-size: 10px;
+  color: var(--cyan);
+  cursor: pointer;
+  padding: 2px 8px;
+  border: 1px solid var(--border-cyan);
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.access-url .copy-btn:hover {
+  background: var(--cyan);
+  color: var(--bg-deep);
+  box-shadow: var(--glow-cyan);
+}
+.access-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  font-size: 10px;
+}
+.access-meta .meta-item {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.access-meta .meta-label { color: var(--text-muted); letter-spacing: 0.5px; }
+.access-meta .meta-val { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+/* ========== ARCHITECTURE (Tab 8) ========== */
+.arch-diagram {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 10px 0;
+}
+.arch-layer {
+  position: relative;
+  padding: 14px 20px;
+  border: 1px solid var(--border-cyan);
+  background: rgba(0, 40, 80, 0.2);
+  clip-path: polygon(20px 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
+}
+.arch-layer::before {
+  content: '';
+  position: absolute; top: -6px; left: 30px;
+  padding: 0 10px;
+  background: var(--bg-deep);
+  color: var(--cyan);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+}
+.arch-layer[data-name]::before { content: attr(data-name); }
+.arch-components {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  margin-top: 4px;
+}
+.arch-comp {
+  padding: 6px 12px;
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid var(--border-dim);
+  font-size: 11px;
+  color: var(--text-primary);
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.2s;
+}
+.arch-comp:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+}
+.arch-comp .ico { font-size: 14px; }
+.arch-connector {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 0.5;
+  animation: arrowPulse 1.5s ease-in-out infinite;
+}
+@keyframes arrowPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; color: var(--cyan); }
+}
+
+/* ========== SYNC TOPOLOGY (Tab 5) ========== */
+.topology-wrap {
+  position: relative;
+  width: 100%; height: 320px;
+  background: rgba(0, 10, 25, 0.5);
+  border: 1px solid var(--border-dim);
+}
+.topology-wrap canvas { width: 100%; height: 100%; display: block; }
+
+.sync-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+.sync-stat {
+  padding: 10px 14px;
+  background: rgba(0, 20, 40, 0.5);
+  border: 1px solid var(--border-dim);
+  text-align: center;
+}
+.sync-stat .val {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+  font-variant-numeric: tabular-nums;
+}
+.sync-stat .label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+/* ========== FLOATING SYNC PANEL ========== */
+#sync-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 20px;
+  width: 320px;
+  max-height: 240px;
+  background: rgba(3, 10, 22, 0.92);
+  border: 1px solid var(--border-cyan);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 240, 255, 0.15);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  transition: max-height 0.3s ease;
+  overflow: hidden;
+}
+#sync-panel.collapsed { max-height: 36px; }
+.sync-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.sync-panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 6px;
+}
+.sync-panel-title .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: blink 1.5s ease-in-out infinite;
+}
+.sync-toggle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: transform 0.3s;
+}
+#sync-panel.collapsed .sync-toggle { transform: rotate(180deg); }
+.sync-panel-body {
+  padding: 8px 12px;
+  max-height: 190px;
+  overflow-y: auto;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.sync-panel-body::-webkit-scrollbar { width: 3px; }
+.sync-panel-body::-webkit-scrollbar-thumb { background: var(--border-cyan); }
+.sync-log-line { display: flex; gap: 6px; }
+.sync-log-line .ts { color: var(--text-muted); flex-shrink: 0; }
+.sync-log-line .msg { color: var(--text-secondary); }
+.sync-log-line.ok .msg { color: var(--green); }
+.sync-log-line.warn .msg { color: var(--amber); }
+
+/* ========== BROADCAST MODAL ========== */
+#broadcast {
+  position: fixed;
+  top: 70px; left: 50%;
+  transform: translateX(-50%) translateY(-120%);
+  width: 540px;
+  max-width: 90vw;
+  background: rgba(3, 15, 30, 0.96);
+  border: 1px solid var(--amber);
+  box-shadow: 0 0 24px rgba(255, 176, 32, 0.3);
+  z-index: 500;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+#broadcast.visible { transform: translateX(-50%) translateY(0); }
+.broadcast-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 176, 32, 0.3);
+  background: rgba(255, 176, 32, 0.06);
+}
+.broadcast-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--amber);
+  letter-spacing: 2px;
+  display: flex; align-items: center; gap: 8px;
+  text-shadow: var(--glow-amber);
+}
+.broadcast-close {
+  cursor: pointer;
+  color: var(--amber);
+  font-size: 16px;
+  padding: 2px 8px;
+}
+.broadcast-close:hover { color: var(--text-primary); }
+.broadcast-body {
+  padding: 14px 16px;
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+.broadcast-body .meta {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex; gap: 16px;
+}
+
+/* ========== NODE DETAIL MODAL ========== */
+#node-modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: none;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+#node-modal.visible { display: flex; }
+.node-modal-content {
+  width: 600px; max-width: 90vw;
+  background: var(--bg-panel-solid);
+  border: 1px solid var(--border-cyan);
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.2);
+  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+  animation: modalIn 0.3s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-cyan);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 1.5px;
+  display: flex; align-items: center; gap: 10px;
+}
+.modal-close {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 20px;
+  padding: 2px 8px;
+}
+.modal-close:hover { color: var(--red); }
+.modal-body { padding: 18px 20px; }
+.modal-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.modal-info-item {
+  padding: 10px 14px;
+  background: rgba(0, 20, 40, 0.6);
+  border: 1px solid var(--border-dim);
+}
+.modal-info-item .label {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.modal-info-item .val {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.modal-info-item .val.cyan { color: var(--cyan); }
+.modal-info-item .val.green { color: var(--green); }
+.modal-chart {
+  height: 140px;
+  background: rgba(0, 10, 20, 0.6);
+  border: 1px solid var(--border-dim);
+  margin-bottom: 14px;
+}
+.modal-chart canvas { width: 100%; height: 100%; }
+
+/* ========== TIMELINE ========== */
+.timeline {
+  position: relative;
+  padding-left: 20px;
+}
+.timeline::before {
+  content: '';
+  position: absolute; left: 6px; top: 4px; bottom: 4px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--cyan), var(--green), var(--magenta));
+  box-shadow: 0 0 4px var(--cyan);
+}
+.timeline-item {
+  position: relative;
+  padding-bottom: 14px;
+  font-size: 11px;
+}
+.timeline-item::before {
+  content: '';
+  position: absolute; left: -18px; top: 4px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--cyan);
+  border: 2px solid var(--bg-deep);
+  box-shadow: 0 0 6px var(--cyan);
+}
+.timeline-item .time {
+  color: var(--text-muted);
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+.timeline-item .event { color: var(--text-primary); font-weight: 500; }
+.timeline-item .detail { color: var(--text-secondary); margin-top: 2px; }
+
+/* ========== TOAST ========== */
+#toast {
+  position: fixed;
+  bottom: 40px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  padding: 10px 20px;
+  background: rgba(0, 20, 40, 0.95);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-size: 12px;
+  z-index: 2000;
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 240, 255, 0.3);
+  pointer-events: none;
+}
+#toast.visible { transform: translateX(-50%) translateY(0); }
+
+/* ========== HEATMAP ========== */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  gap: 3px;
+  height: 240px;
+  padding: 10px;
+  background: rgba(0, 10, 20, 0.5);
+}
+.heat-cell {
+  border-radius: 1px;
+  background: rgba(0, 240, 255, 0.05);
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.heat-cell:hover { transform: scale(1.3); z-index: 2; }
+
+/* ========== SECTION HEADINGS IN PANELS ========== */
+.section-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border-dim), transparent);
+}
+
+/* ========== NUMBER ROLLER ========== */
+.num-roller {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ========== HUD CORNER DECORATIONS ========== */
+.hud-corner { position: absolute; width: 16px; height: 16px; border-color: var(--cyan); }
+.hud-corner.tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
+.hud-corner.tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
+.hud-corner.bl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
+.hud-corner.br { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
+
+/* Utility */
+.text-cyan { color: var(--cyan); }
+.text-green { color: var(--green); }
+.text-magenta { color: var(--magenta); }
+.text-amber { color: var(--amber); }
+.text-muted { color: var(--text-muted); }
+.text-secondary { color: var(--text-secondary); }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.flex { display: flex; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+
+</style>
+</head>
+<body>
+<!-- Canvas Backgrounds -->
+<canvas id="starfield"></canvas>
+<div id="grid-overlay"></div>
+<div id="scanlines"></div>
+
+<!-- Boot Screen -->
+<div id="boot-screen">
+  <div class="boot-logo">
+    ⟨ UNIVERSAL REAL DATA SYSTEM v∞ ⟩
+  </div>
+  <div id="boot-log"></div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="nav-logo">
+        <span class="infinity">∞</span>
+        <div>
+          <div class="title-main">UNIVERSAL REAL DATA SYSTEM</div>
+          <div class="title-sub">全宇宙真实数据系统 · v∞</div>
+        </div>
+      </div>
+      <div class="nav-status">
+        <div class="status-chip"><span class="status-dot"></span>SYSTEM ONLINE</div>
+        <div class="status-chip magenta"><span class="status-dot"></span>SHIELD ACTIVE</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="lang-picker">
+        <span>⌘</span>
+        <span>中文 / EN</span>
+      </div>
+      <div class="nav-clock">
+        <span class="date" id="clock-date">—</span>
+        <span id="clock-time">--:--:--</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Dashboard -->
+  <section class="hero-dashboard">
+    <div class="hero-grid">
+      <div class="hero-card">
+        <div class="hero-label">已观测星球数 <span class="unit">PLANETS</span></div>
+        <div class="hero-value" data-target="5438921706" data-suffix="">0</div>
+        <div class="hero-sub">
+          <span>较昨日 <span class="trend">+0.02%</span></span>
+          <span>≈ 54.3 亿</span>
+        </div>
+      </div>
+      <div class="hero-card green">
+        <div class="hero-label">天体总数 <span class="unit">CELESTIAL BODIES</span></div>
+        <div class="hero-value" data-target="2000000000000" data-suffix="">0</div>
+        <div class="hero-sub">
+          <span>含恒星/行星/卫星</span>
+          <span>≈ 2 万亿</span>
+        </div>
+      </div>
+      <div class="hero-card magenta">
+        <div class="hero-label">生命形态数 <span class="unit">LIFE FORMS</span></div>
+        <div class="hero-value" data-target="8742316" data-suffix="">0</div>
+        <div class="hero-sub">
+          <span>已识别智慧文明 <span class="trend">472</span></span>
+          <span>Kardashev ≥ I</span>
+        </div>
+      </div>
+      <div class="hero-card amber">
+        <div class="hero-label">宇宙年龄 <span class="unit">COSMIC AGE</span></div>
+        <div class="hero-value" data-target="13820000000" data-suffix=" 年">0</div>
+        <div class="hero-sub">
+          <span>当前精度 <span class="trend">±0.02%</span></span>
+          <span>Gyr: 13.82</span>
+        </div>
+      </div>
+      <div class="hero-card green">
+        <div class="hero-label">能源总量 <span class="unit">TOTAL ENERGY</span></div>
+        <div class="hero-value" data-target="412" data-suffix="">0</div>
+        <div class="hero-sub">
+          <span>单位：10⁷⁰ 焦耳</span>
+          <span class="trend down">守恒中</span>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="hero-label">物质质量 <span class="unit">TOTAL MASS</span></div>
+        <div class="hero-value" data-target="15" data-suffix="">0</div>
+        <div class="hero-sub">
+          <span>单位：10⁵³ kg</span>
+          <span>含重子+暗物质</span>
+        </div>
+      </div>
+      <div class="hero-card magenta">
+        <div class="hero-label">膨胀速率 <span class="unit">EXPANSION RATE</span></div>
+        <div class="hero-value" data-target="7304" data-suffix="">0</div>
+        <div class="hero-sub">
+          <span>单位：km/s/Mpc</span>
+          <span class="trend">+0.4%/Gyr</span>
+        </div>
+      </div>
+      <div class="hero-card amber">
+        <div class="hero-label">暗能量占比 <span class="unit">DARK ENERGY</span></div>
+        <div class="hero-value" data-target="683" data-suffix="%">0</div>
+        <div class="hero-sub">
+          <span>暗物质: 26.8%</span>
+          <span>重子: 4.9%</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-val" id="stat-nodes">1,024</span>
+      <span class="stat-label">全宇宙节点</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-val text-green" id="stat-online">987</span>
+      <span class="stat-label">在线节点</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-val" id="stat-sources">4,096</span>
+      <span class="stat-label">数据源数量</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-val text-green" id="stat-tps">2.84M</span>
+      <span class="stat-label">每秒数据量</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-val" id="stat-stored">847 YB</span>
+      <span class="stat-label">已存储数据</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-val text-magenta" style="color:var(--magenta)">99.9997%</span>
+      <span class="stat-label">数据一致性</span>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar" id="tab-bar">
+    <div class="tab-item active" data-tab="overview"><span class="tab-icon">📊</span>数据总览大屏</div>
+    <div class="tab-item" data-tab="nodes"><span class="tab-icon">🌐</span>多节点部署监控</div>
+    <div class="tab-item" data-tab="collect"><span class="tab-icon">📡</span>数据采集引擎</div>
+    <div class="tab-item" data-tab="analysis"><span class="tab-icon">📈</span>数据分析中心</div>
+    <div class="tab-item" data-tab="sync"><span class="tab-icon">🔄</span>数据同步状态</div>
+    <div class="tab-item" data-tab="access"><span class="tab-icon">🔑</span>系统访问入口</div>
+    <div class="tab-item" data-tab="alerts"><span class="tab-icon">⚠️</span>异常与告警</div>
+    <div class="tab-item" data-tab="arch"><span class="tab-icon">⚙️</span>系统架构总览</div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Tab 1: Overview -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="grid-2">
+        <!-- Real-time data feed -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">实时数据流终端</span>
+            <span class="panel-tag">LIVE</span>
+          </div>
+          <div class="panel-body">
+            <div class="terminal-log" id="overview-log">
+              <div class="log-line ok"><span class="ts">[00:00:00]</span> <span class="msg">Initializing real-time data stream...</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Universe composition -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">宇宙成分构成</span>
+            <span class="panel-tag">ΛCDM MODEL</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-container chart-mini">
+              <canvas id="pie-composition"></canvas>
+            </div>
+            <div class="pie-legend">
+              <div class="legend-item">
+                <div class="legend-color" style="background:#ff2d95"></div>
+                <span class="legend-label">暗能量 Dark Energy</span>
+                <span class="legend-val">68.3%</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background:#00f0ff"></div>
+                <span class="legend-label">暗物质 Dark Matter</span>
+                <span class="legend-val">26.8%</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background:#00ff88"></div>
+                <span class="legend-label">重子物质 Baryonic Matter</span>
+                <span class="legend-val">4.9%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">宇宙膨胀速率</span>
+            <span class="panel-tag">H₀ = 73.04</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-container chart-mini">
+              <canvas id="chart-expansion"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">能源分布</span>
+            <span class="panel-tag">10⁷⁰ J</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-container chart-mini">
+              <canvas id="chart-energy"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">生命演化指数</span>
+            <span class="panel-tag">DRAKE EQ</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-container chart-mini">
+              <canvas id="chart-life"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Nodes -->
+    <div class="tab-panel" id="tab-nodes">
+      <div class="section-label">全宇宙节点部署矩阵</div>
+      <div class="node-grid" id="node-grid">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+
+    <!-- Tab 3: Collection -->
+    <div class="tab-panel" id="tab-collect">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">数据源状态列表</span>
+            <span class="panel-tag">6 CHANNELS</span>
+          </div>
+          <div class="panel-body">
+            <div class="source-list" id="source-list"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">采集引擎终端日志</span>
+            <span class="panel-tag">STREAMING</span>
+          </div>
+          <div class="panel-body">
+            <div class="terminal-log" id="collect-log"></div>
+            <div class="mt-12">
+              <div class="flex-between mb-8">
+                <span style="font-size:10px;color:var(--text-secondary);letter-spacing:1px">总采集进度</span>
+                <span style="font-size:10px;color:var(--cyan)" id="collect-progress-text">67.8%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="collect-progress-bar" style="width:67.8%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-4">
+        <div class="panel">
+          <div class="panel-body text-center">
+            <div class="hero-value" style="font-size:24px" id="metric-packets">2.84M</div>
+            <div class="stat-label" style="margin-top:4px;font-size:9px;color:var(--text-secondary);letter-spacing:1px">PACKETS/SEC</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-body text-center">
+            <div class="hero-value text-green" style="font-size:24px;color:var(--green)">98.7%</div>
+            <div class="stat-label" style="margin-top:4px;font-size:9px;color:var(--text-secondary);letter-spacing:1px">SUCCESS RATE</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-body text-center">
+            <div class="hero-value" style="font-size:24px;color:var(--magenta)">14.2 TB</div>
+            <div class="stat-label" style="margin-top:4px;font-size:9px;color:var(--text-secondary);letter-spacing:1px">DATA TODAY</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-body text-center">
+            <div class="hero-value" style="font-size:24px;color:var(--amber)">47 ms</div>
+            <div class="stat-label" style="margin-top:4px;font-size:9px;color:var(--text-secondary);letter-spacing:1px">AVG LATENCY</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Analysis -->
+    <div class="tab-panel" id="tab-analysis">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">宇宙膨胀趋势图</span>
+            <span class="panel-tag">13.8 GYR</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-container">
+              <canvas id="chart-expand-trend"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">星系分布热力图</span>
+            <span class="panel-tag">12×8 GRID</span>
+          </div>
+          <div class="panel-body">
+            <div class="heatmap-grid" id="galaxy-heatmap"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">能源消耗对比</span>
+            <span class="panel-tag">TOP 5</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-container chart-mini">
+              <canvas id="chart-energy-bar"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">生命演化时间线</span>
+            <span class="panel-tag">4.5 GYR</span>
+          </div>
+          <div class="panel-body">
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="time">~45亿年前</div>
+                <div class="event">原初生命分子形成</div>
+                <div class="detail">RNA世界假说 · 碳基化学自催化</div>
+              </div>
+              <div class="timeline-item">
+                <div class="time">~38亿年前</div>
+                <div class="event">首个原核细胞出现</div>
+                <div class="detail">LUCA · 地球深海热泉</div>
+              </div>
+              <div class="timeline-item">
+                <div class="time">~27亿年前</div>
+                <div class="event">大氧化事件</div>
+                <div class="detail">蓝藻光合作用 · 大气氧含量飙升</div>
+              </div>
+              <div class="timeline-item">
+                <div class="time">~5.4亿年前</div>
+                <div class="event">寒武纪生命大爆发</div>
+                <div class="detail">绝大多数动物门在2000万年内出现</div>
+              </div>
+              <div class="timeline-item">
+                <div class="time">~20万年前</div>
+                <div class="event">智人出现</div>
+                <div class="detail">非洲起源 · 全球迁徙</div>
+              </div>
+              <div class="timeline-item">
+                <div class="time">当前时刻</div>
+                <div class="event">Kardashev 0.73 文明</div>
+                <div class="detail">正在向I型文明过渡</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">物质/能量比例</span>
+            <span class="panel-tag">π-CHART</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-container chart-mini">
+              <canvas id="chart-matter-energy"></canvas>
+            </div>
+            <div class="pie-legend">
+              <div class="legend-item"><div class="legend-color" style="background:#ff2d95"></div><span class="legend-label">暗能量</span><span class="legend-val">68.3%</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#00f0ff"></div><span class="legend-label">暗物质</span><span class="legend-val">26.8%</span></div>
+              <div class="legend-item"><div class="legend-color" style="background:#00ff88"></div><span class="legend-label">普通物质</span><span class="legend-val">4.9%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">异常数据告警摘要</span>
+          <span class="panel-tag">REAL-TIME</span>
+        </div>
+        <div class="panel-body">
+          <div class="alert-list" id="analysis-alerts"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 5: Sync -->
+    <div class="tab-panel" id="tab-sync">
+      <div class="sync-stats">
+        <div class="sync-stat">
+          <div class="val" id="sync-rate">99.98%</div>
+          <div class="label">同步成功率</div>
+        </div>
+        <div class="sync-stat">
+          <div class="val text-green" style="color:var(--green)" id="sync-queue">2,847</div>
+          <div class="label">同步队列</div>
+        </div>
+        <div class="sync-stat">
+          <div class="val" style="color:var(--amber)" id="sync-conflicts">17</div>
+          <div class="label">冲突待解决</div>
+        </div>
+        <div class="sync-stat">
+          <div class="val" style="color:var(--magenta)" id="sync-nodes">128</div>
+          <div class="label">活跃节点</div>
+        </div>
+      </div>
+
+      <div class="grid-2 mt-12">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">同步拓扑图</span>
+            <span class="panel-tag">P2P MESH</span>
+          </div>
+          <div class="panel-body">
+            <div class="topology-wrap">
+              <canvas id="topology-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">冲突解决日志</span>
+            <span class="panel-tag">CONSENSUS</span>
+          </div>
+          <div class="panel-body">
+            <div class="terminal-log" id="sync-log" style="height:320px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel mt-12">
+        <div class="panel-header">
+          <span class="panel-title">跨节点数据一致性校验结果</span>
+          <span class="panel-tag">Merkle Tree</span>
+        </div>
+        <div class="panel-body">
+          <div class="grid-4">
+            <div>
+              <div class="section-label">校验维度</div>
+              <div style="font-size:11px;color:var(--text-secondary);line-height:2">
+                <div>▸ 天体坐标一致性</div>
+                <div>▸ 物理常数一致性</div>
+                <div>▸ 时间戳同步</div>
+                <div>▸ 数据完整性哈希</div>
+              </div>
+            </div>
+            <div>
+              <div class="section-label">一致性</div>
+              <div style="font-size:11px;color:var(--green);line-height:2">
+                <div>99.9998%</div>
+                <div>99.99999%</div>
+                <div>99.997%</div>
+                <div>100%</div>
+              </div>
+            </div>
+            <div>
+              <div class="section-label">偏差值</div>
+              <div style="font-size:11px;color:var(--amber);line-height:2">
+                <div>±0.002 arcsec</div>
+                <div>±1e-9 σ</div>
+                <div>±3.2 ms</div>
+                <div>0 bit</div>
+              </div>
+            </div>
+            <div>
+              <div class="section-label">状态</div>
+              <div style="font-size:11px;color:var(--green);line-height:2">
+                <div>● PASS</div>
+                <div>● PASS</div>
+                <div>● PASS</div>
+                <div>● PASS</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 6: Access -->
+    <div class="tab-panel" id="tab-access">
+      <div class="section-label">全平台独立访问入口</div>
+      <div class="access-grid" id="access-grid"></div>
+    </div>
+
+    <!-- Tab 7: Alerts -->
+    <div class="tab-panel" id="tab-alerts">
+      <div class="alert-filter">
+        <div class="filter-chip active" data-filter="all">全部</div>
+        <div class="filter-chip" data-filter="critical">严重</div>
+        <div class="filter-chip" data-filter="warning">警告</div>
+        <div class="filter-chip" data-filter="info">信息</div>
+        <div class="filter-chip" data-filter="unresolved">未处理</div>
+      </div>
+      <div class="alert-list" id="alert-list"></div>
+    </div>
+
+    <!-- Tab 8: Architecture -->
+    <div class="tab-panel" id="tab-arch">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">系统分层架构图</span>
+            <span class="panel-tag">7 LAYERS</span>
+          </div>
+          <div class="panel-body">
+            <div class="arch-diagram">
+              <div class="arch-layer" data-name="应用层 · APPLICATION">
+                <div class="arch-components">
+                  <div class="arch-comp"><span class="ico">📊</span>数据总览大屏</div>
+                  <div class="arch-comp"><span class="ico">🔬</span>分析工作台</div>
+                  <div class="arch-comp"><span class="ico">📱</span>移动终端</div>
+                  <div class="arch-comp"><span class="ico">🖥</span>桌面客户端</div>
+                  <div class="arch-comp"><span class="ico">🔌</span>API网关</div>
+                </div>
+              </div>
+              <div class="arch-connector">▼</div>
+              <div class="arch-layer" data-name="计算层 · COMPUTE">
+                <div class="arch-components">
+                  <div class="arch-comp"><span class="ico">⚡</span>量子计算阵列</div>
+                  <div class="arch-comp"><span class="ico">🧠</span>神经网络集群</div>
+                  <div class="arch-comp"><span class="ico">📐</span>分布式计算</div>
+                  <div class="arch-comp"><span class="ico">🔢</span>数值模拟引擎</div>
+                </div>
+              </div>
+              <div class="arch-connector">▼</div>
+              <div class="arch-layer" data-name="存储层 · STORAGE">
+                <div class="arch-components">
+                  <div class="arch-comp"><span class="ico">💾</span>全息存储阵列</div>
+                  <div class="arch-comp"><span class="ico">💎</span>晶体持久化</div>
+                  <div class="arch-comp"><span class="ico">🌊</span>分布式文件系统</div>
+                  <div class="arch-comp"><span class="ico">📦</span>对象存储</div>
+                </div>
+              </div>
+              <div class="arch-connector">▼</div>
+              <div class="arch-layer" data-name="传输层 · TRANSPORT">
+                <div class="arch-components">
+                  <div class="arch-comp"><span class="ico">🔗</span>量子纠缠通信</div>
+                  <div class="arch-comp"><span class="ico">📡</span>引力波中继</div>
+                  <div class="arch-comp"><span class="ico">🌀</span>虫洞路由</div>
+                  <div class="arch-comp"><span class="ico">🛰</span>跨星系中继</div>
+                </div>
+              </div>
+              <div class="arch-connector">▼</div>
+              <div class="arch-layer" data-name="采集层 · COLLECTION">
+                <div class="arch-components">
+                  <div class="arch-comp"><span class="ico">📡</span>信号接收阵列</div>
+                  <div class="arch-comp"><span class="ico">🔭</span>深空望远镜</div>
+                  <div class="arch-comp"><span class="ico">🌌</span>暗物质探测器</div>
+                  <div class="arch-comp"><span class="ico">⚛</span>量子传感器</div>
+                  <div class="arch-comp"><span class="ico">🧬</span>生命信号扫描</div>
+                </div>
+              </div>
+              <div class="arch-connector">▼</div>
+              <div class="arch-layer" data-name="安全层 · SECURITY">
+                <div class="arch-components">
+                  <div class="arch-comp"><span class="ico">🛡</span>量子加密</div>
+                  <div class="arch-comp"><span class="ico">🔐</span>零信任架构</div>
+                  <div class="arch-comp"><span class="ico">👁</span>入侵检测</div>
+                  <div class="arch-comp"><span class="ico">🧱</span>宇宙级防火墙</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">核心技术指标</span>
+              <span class="panel-tag">SPEC</span>
+            </div>
+            <div class="panel-body">
+              <div class="grid-2 gap-8">
+                <div style="padding:10px;background:rgba(0,20,40,0.5);border:1px solid var(--border-dim)">
+                  <div style="font-size:9px;color:var(--text-muted);letter-spacing:1px">吞吐量</div>
+                  <div style="font-size:18px;color:var(--cyan);font-weight:700;margin-top:4px">2.84 PB/s</div>
+                </div>
+                <div style="padding:10px;background:rgba(0,20,40,0.5);border:1px solid var(--border-dim)">
+                  <div style="font-size:9px;color:var(--text-muted);letter-spacing:1px">延迟</div>
+                  <div style="font-size:18px;color:var(--green);font-weight:700;margin-top:4px">0ms</div>
+                  <div style="font-size:9px;color:var(--text-muted)">量子瞬时</div>
+                </div>
+                <div style="padding:10px;background:rgba(0,20,40,0.5);border:1px solid var(--border-dim)">
+                  <div style="font-size:9px;color:var(--text-muted);letter-spacing:1px">可用性</div>
+                  <div style="font-size:18px;color:var(--magenta);font-weight:700;margin-top:4px">99.9997%</div>
+                </div>
+                <div style="padding:10px;background:rgba(0,20,40,0.5);border:1px solid var(--border-dim)">
+                  <div style="font-size:9px;color:var(--text-muted);letter-spacing:1px">总容量</div>
+                  <div style="font-size:18px;color:var(--amber);font-weight:700;margin-top:4px">∞ YB</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel mt-12">
+            <div class="panel-header">
+              <span class="panel-title">数据处理流程</span>
+              <span class="panel-tag">PIPELINE</span>
+            </div>
+            <div class="panel-body">
+              <div class="timeline">
+                <div class="timeline-item">
+                  <div class="time">STEP 01</div>
+                  <div class="event">原始信号采集</div>
+                  <div class="detail">多频段传感器阵列 · 同步触发采样</div>
+                </div>
+                <div class="timeline-item">
+                  <div class="time">STEP 02</div>
+                  <div class="event">降噪与预处理</div>
+                  <div class="detail">AI降噪 · 信号增强 · 异常标记</div>
+                </div>
+                <div class="timeline-item">
+                  <div class="time">STEP 03</div>
+                  <div class="event">特征提取与分析</div>
+                  <div class="detail">模式识别 · 物理建模 · 参数反演</div>
+                </div>
+                <div class="timeline-item">
+                  <div class="time">STEP 04</div>
+                  <div class="event">数据入库与归档</div>
+                  <div class="detail">多副本存储 · 分布式校验 · 索引构建</div>
+                </div>
+                <div class="timeline-item">
+                  <div class="time">STEP 05</div>
+                  <div class="event">跨节点同步共识</div>
+                  <div class="detail">Merkle树校验 · 量子签名 · 最终一致性</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Floating Sync Panel -->
+<div id="sync-panel">
+  <div class="sync-panel-header" id="sync-panel-toggle">
+    <div class="sync-panel-title"><span class="dot"></span>实时数据同步</div>
+    <div class="sync-toggle">▲</div>
+  </div>
+  <div class="sync-panel-body" id="sync-panel-body">
+    <div class="sync-log-line ok"><span class="ts">00:00:01</span> <span class="msg">[EARTH-01] 同步完成 · 2.8M 条记录</span></div>
+  </div>
+</div>
+
+<!-- Broadcast Modal -->
+<div id="broadcast">
+  <div class="broadcast-header">
+    <span class="broadcast-title">📡 全宇宙广播 · UNIVERSAL BROADCAST</span>
+    <span class="broadcast-close" id="broadcast-close">×</span>
+  </div>
+  <div class="broadcast-body">
+    检测到来自仙女座方向的新引力波信号 GW-2026-0822-∞，已触发数据采集优先级提升。各节点请同步更新观测参数。
+    <div class="meta">
+      <span>信号强度: 7.8 σ</span>
+      <span>来源: M31 核心区域</span>
+      <span>等级: AMBER</span>
+    </div>
+  </div>
+</div>
+
+<!-- Node Detail Modal -->
+<div id="node-modal">
+  <div class="node-modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">节点详情</div>
+      <span class="modal-close" id="modal-close">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-info-grid" id="modal-info-grid"></div>
+      <div class="section-label">吞吐量趋势（近24小时）</div>
+      <div class="modal-chart">
+        <canvas id="modal-chart"></canvas>
+      </div>
+      <div class="section-label">节点日志</div>
+      <div class="terminal-log" id="modal-log" style="height:120px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast">地址已复制到剪贴板</div>
+<script>
+/* ========== UTILITIES ========== */
+const $ = (s, ctx = document) => ctx.querySelector(s);
+const $$ = (s, ctx = document) => Array.from(ctx.querySelectorAll(s));
+const rand = (min, max) => Math.random() * (max - min) + min;
+const randInt = (min, max) => Math.floor(rand(min, max + 1));
+
+function formatNumber(n) {
+  return n.toLocaleString('en-US');
+}
+function padZero(n, w = 2) { return String(n).padStart(w, '0'); }
+
+function showToast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('visible'), 2000);
+}
+
+/* ========== STARFIELD CANVAS ========== */
+const starCanvas = $('#starfield');
+const starCtx = starCanvas.getContext('2d');
+let stars = [];
+let shootingStars = [];
+
+function initStars() {
+  starCanvas.width = window.innerWidth;
+  starCanvas.height = window.innerHeight;
+  stars = [];
+  const count = Math.floor((starCanvas.width * starCanvas.height) / 3000);
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random() * starCanvas.width,
+      y: Math.random() * starCanvas.height,
+      size: Math.random() * 1.5 + 0.3,
+      speed: Math.random() * 0.05 + 0.01,
+      opacity: Math.random() * 0.8 + 0.2,
+      twinkle: Math.random() * Math.PI * 2,
+      twinkleSpeed: Math.random() * 0.02 + 0.005,
+      color: Math.random() > 0.85 ? '#ff2d95' : (Math.random() > 0.7 ? '#00ff88' : '#00f0ff')
+    });
+  }
+}
+
+function drawStars() {
+  starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+  stars.forEach(s => {
+    s.twinkle += s.twinkleSpeed;
+    const flicker = 0.5 + Math.sin(s.twinkle) * 0.5;
+    starCtx.beginPath();
+    starCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+    starCtx.fillStyle = s.color;
+    starCtx.globalAlpha = s.opacity * flicker;
+    starCtx.shadowColor = s.color;
+    starCtx.shadowBlur = s.size * 2;
+    starCtx.fill();
+    // drift
+    s.x += s.speed;
+    if (s.x > starCanvas.width) s.x = 0;
+  });
+  starCtx.globalAlpha = 1;
+  starCtx.shadowBlur = 0;
+
+  // shooting stars
+  if (Math.random() < 0.003) {
+    shootingStars.push({
+      x: Math.random() * starCanvas.width,
+      y: Math.random() * starCanvas.height * 0.5,
+      len: rand(60, 150),
+      speed: rand(8, 15),
+      angle: Math.PI / 4 + rand(-0.2, 0.2),
+      life: 1
+    });
+  }
+  shootingStars = shootingStars.filter(s => s.life > 0);
+  shootingStars.forEach(s => {
+    const dx = Math.cos(s.angle) * s.len;
+    const dy = Math.sin(s.angle) * s.len;
+    const grad = starCtx.createLinearGradient(s.x, s.y, s.x + dx, s.y + dy);
+    grad.addColorStop(0, `rgba(0, 240, 255, ${s.life})`);
+    grad.addColorStop(1, 'rgba(0, 240, 255, 0)');
+    starCtx.strokeStyle = grad;
+    starCtx.lineWidth = 1.5;
+    starCtx.beginPath();
+    starCtx.moveTo(s.x, s.y);
+    starCtx.lineTo(s.x + dx, s.y + dy);
+    starCtx.stroke();
+    s.x += Math.cos(s.angle) * s.speed;
+    s.y += Math.sin(s.angle) * s.speed;
+    s.life -= 0.02;
+  });
+
+  requestAnimationFrame(drawStars);
+}
+
+/* ========== BOOT SEQUENCE ========== */
+const bootLines = [
+  { t: '', msg: '> BOOT SEQUENCE INITIATED...', cls: 'cyan' },
+  { t: 200, msg: '> [OK] Core subsystem: UNIVERSAL DATA CORE v∞.0.1', cls: 'ok' },
+  { t: 200, msg: '> [OK] Quantum entanglement links established', cls: 'ok' },
+  { t: 300, msg: '> [OK] Multi-dimensional array online: 1,024 nodes', cls: 'ok' },
+  { t: 200, msg: '> [INFO] Calibrating cosmic microwave background sensors...', cls: 'info' },
+  { t: 300, msg: '> [OK] CMB sensors calibrated. ΔT = 2.72548 K', cls: 'ok' },
+  { t: 200, msg: '> [INFO] Initializing dark matter detection array...', cls: 'info' },
+  { t: 400, msg: '> [OK] LUX-ZEPLIN, XENONnT, PandaX-xT online', cls: 'ok' },
+  { t: 200, msg: '> [WARN] Node SATURN-RING-07 in maintenance mode', cls: 'warn' },
+  { t: 300, msg: '> [INFO] Loading gravitational wave detector network...', cls: 'info' },
+  { t: 200, msg: '> [OK] LIGO/Virgo/KAGRA synchronized', cls: 'ok' },
+  { t: 300, msg: '> [OK] Exoplanet telescope array: 42 active platforms', cls: 'ok' },
+  { t: 200, msg: '> [INFO] Establishing cross-galaxy data links...', cls: 'info' },
+  { t: 400, msg: '> [OK] Milky Way core relay: CONNECTED', cls: 'ok' },
+  { t: 300, msg: '> [OK] Andromeda relay: SYNCED (2.5M ly latency = 0ms via quantum)', cls: 'ok' },
+  { t: 200, msg: '> [DATA] Universe age: 13,820,000,000 years ± 0.02%', cls: 'data' },
+  { t: 200, msg: '> [DATA] Observable galaxies: ~2 trillion', cls: 'data' },
+  { t: 200, msg: '> [DATA] Identified life forms: 8,742,316 species across 472 worlds', cls: 'data' },
+  { t: 300, msg: '> [OK] Security shield: QUANTUM ENCRYPTION ACTIVE', cls: 'ok' },
+  { t: 200, msg: '> [OK] All systems nominal. Welcome to URDS v∞', cls: 'cyan' },
+  { t: 500, msg: '> Launching main interface...', cls: 'dim' },
+];
+
+function runBoot() {
+  const log = $('#boot-log');
+  let i = 0;
+  function nextLine() {
+    if (i >= bootLines.length) {
+      setTimeout(() => {
+        $('#boot-screen').classList.add('hidden');
+        setTimeout(() => {
+          $('#app').classList.add('visible');
+          initApp();
+        }, 400);
+      }, 400);
+      return;
+    }
+    const line = bootLines[i];
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = `boot-line ${line.cls || ''}`;
+      div.textContent = line.msg;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+      i++;
+      nextLine();
+    }, line.t || 200);
+  }
+  nextLine();
+}
+
+/* ========== CLOCK ========== */
+function updateClock() {
+  const now = new Date();
+  const t = `${padZero(now.getHours())}:${padZero(now.getMinutes())}:${padZero(now.getSeconds())}`;
+  const d = `${now.getFullYear()}.${padZero(now.getMonth()+1)}.${padZero(now.getDate())} · SECTOR EARTH`;
+  $('#clock-time').textContent = t;
+  $('#clock-date').textContent = d;
+}
+
+/* ========== NUMBER ROLLER ANIMATION ========== */
+function animateNumber(el) {
+  const target = parseFloat(el.dataset.target);
+  const suffix = el.dataset.suffix || '';
+  const duration = 2000;
+  const startTime = performance.now();
+  const isFloat = target < 1000 && target !== Math.floor(target);
+
+  function tick(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = target * eased;
+    let display;
+    if (target >= 1000000000) {
+      display = (current / 1000000000).toFixed(2) + 'B';
+    } else if (target >= 1000000) {
+      display = (current / 1000000).toFixed(2) + 'M';
+    } else if (target >= 10000) {
+      display = Math.floor(current).toLocaleString();
+    } else if (target >= 100) {
+      display = (current / 10).toFixed(1);
+    } else {
+      display = current.toFixed(1);
+    }
+    el.textContent = display + suffix;
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function initHeroNumbers() {
+  $$('.hero-value').forEach((el, i) => {
+    setTimeout(() => animateNumber(el), 200 + i * 120);
+  });
+}
+
+/* ========== TABS ========== */
+function initTabs() {
+  $$('.tab-item').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+      $$('.tab-item').forEach(t => t.classList.remove('active'));
+      $$('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      $(`#tab-${target}`).classList.add('active');
+      // Re-init charts on tab switch if needed
+      if (target === 'sync') setTimeout(drawTopology, 50);
+    });
+  });
+}
+
+/* ========== NODES DATA ========== */
+const nodes = [
+  { name: '地球主节点', platform: 'Earth Core Server · 亚太数据中心', status: 'online', address: 'https://urd.earth/v1/core', throughput: '2.84 PB/s', latency: '0 ms', sync: '刚刚', code: 'EARTH-01' },
+  { name: '月球备份节点', platform: 'Luna Backup Array · 月背冷存储', status: 'online', address: 'https://urd.luna/v1/backup', throughput: '840 TB/s', latency: '1.28 s', sync: '1.3秒前', code: 'LUNA-01' },
+  { name: '火星边缘节点', platform: 'Mars Edge Cluster · 奥林帕斯站', status: 'online', address: 'https://urd.mars/v1/edge', throughput: '1.2 PB/s', latency: '4.3 min', sync: '4分钟前', code: 'MARS-01' },
+  { name: '木星计算集群', platform: 'Jupiter Compute Grid · 大红球节点', status: 'sync', address: 'https://urd.jupiter/v1/compute', throughput: '5.6 PB/s', latency: '42 min', sync: '同步中', code: 'JUPITER-03' },
+  { name: '土星环存储阵列', platform: 'Saturn Ring Storage · B环阵列', status: 'maintenance', address: 'https://urd.saturn/v1/archive', throughput: '0 TB/s', latency: '78 min', sync: '维护中', code: 'SATURN-07' },
+  { name: '银河系核心节点', platform: 'Milky Way Core · 人马座A*中继', status: 'online', address: 'https://urd.milkyway/v1/core', throughput: '42 PB/s', latency: '26,000 ly', sync: '量子同步', code: 'MW-CORE' },
+  { name: '仙女座中继节点', platform: 'Andromeda Relay · M31-042', status: 'online', address: 'https://urd.andromeda/v1/relay', throughput: '18 PB/s', latency: '2.5M ly', sync: '量子同步', code: 'M31-RELAY' },
+  { name: '宇宙边缘探测节点', platform: 'Cosmic Edge Probes · 共128台', status: 'sync', address: 'https://urd.edge/v1/probes', throughput: '840 TB/s', latency: '46.5B ly', sync: '同步中', code: 'EDGE-Ω' },
+  { name: '柯伊伯带网关', platform: 'Kuiper Gateway · 深空通信枢纽', status: 'online', address: 'https://urd.kuiper/v1/gw', throughput: '320 TB/s', latency: '5.5 h', sync: '5小时前', code: 'KUIPER-GW' },
+  { name: '奥尔特云哨站', platform: 'Oort Cloud Outpost · 外围防御', status: 'online', address: 'https://urd.oort/v1/sentry', throughput: '12 TB/s', latency: '1.2 ly', sync: '1年前', code: 'OORT-01' },
+  { name: '暗物质观测站', platform: 'Dark Matter Observatory · 地下深处', status: 'online', address: 'https://urd.dm/v1/detector', throughput: '560 TB/s', latency: '0 ms', sync: '刚刚', code: 'DM-OBS' },
+  { name: '量子纠缠枢纽', platform: 'Quantum Entanglement Hub · 全局同步', status: 'online', address: 'https://urd.qeh/v1/entangle', throughput: '∞', latency: '0 ms', sync: '瞬时', code: 'QEH-Ω' },
+];
+
+const statusLabels = { online: '在线', sync: '同步中', maintenance: '维护中' };
+
+function renderNodes() {
+  const grid = $('#node-grid');
+  grid.innerHTML = nodes.map((n, i) => `
+    <div class="node-card" data-index="${i}">
+      <div class="node-header">
+        <div class="node-name">${n.name}</div>
+        <div class="node-status ${n.status}"><span class="dot"></span>${statusLabels[n.status]}</div>
+      </div>
+      <div class="node-platform">${n.platform}</div>
+      <div class="node-metrics">
+        <div class="node-metric"><span class="label">吞吐量</span><span class="val">${n.throughput}</span></div>
+        <div class="node-metric"><span class="label">延迟</span><span class="val">${n.latency}</span></div>
+        <div class="node-metric"><span class="label">最后同步</span><span class="val">${n.sync}</span></div>
+      </div>
+      <div class="node-address">${n.address}</div>
+    </div>
+  `).join('');
+  $$('.node-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx = parseInt(card.dataset.index);
+      showNodeModal(nodes[idx]);
+    });
+  });
+}
+
+function showNodeModal(node) {
+  $('#modal-title').textContent = `${node.name} · ${node.code}`;
+  const statusClass = node.status;
+  $('#modal-info-grid').innerHTML = `
+    <div class="modal-info-item">
+      <div class="label">节点状态</div>
+      <div class="val ${node.status === 'online' ? 'green' : node.status === 'sync' ? 'cyan' : ''}" style="color:${node.status === 'maintenance' ? 'var(--amber)' : ''}">● ${statusLabels[node.status]}</div>
+    </div>
+    <div class="modal-info-item">
+      <div class="label">部署平台</div>
+      <div class="val">${node.platform}</div>
+    </div>
+    <div class="modal-info-item">
+      <div class="label">数据吞吐量</div>
+      <div class="val cyan">${node.throughput}</div>
+    </div>
+    <div class="modal-info-item">
+      <div class="label">网络延迟</div>
+      <div class="val">${node.latency}</div>
+    </div>
+    <div class="modal-info-item">
+      <div class="label">访问地址</div>
+      <div class="val" style="font-size:11px;color:var(--green);word-break:break-all">${node.address}</div>
+    </div>
+    <div class="modal-info-item">
+      <div class="label">最后同步</div>
+      <div class="val">${node.sync}</div>
+    </div>
+  `;
+  $('#node-modal').classList.add('visible');
+  drawModalChart(node);
+  populateModalLog(node);
+}
+$('#modal-close').addEventListener('click', () => $('#node-modal').classList.remove('visible'));
+$('#node-modal').addEventListener('click', e => { if (e.target.id === 'node-modal') $('#node-modal').classList.remove('visible'); });
+
+function drawModalChart(node) {
+  const canvas = $('#modal-chart');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  const w = canvas.width, h = canvas.height;
+  const points = 24;
+  const data = Array.from({ length: points }, () => rand(0.3, 1));
+  ctx.clearRect(0, 0, w, h);
+  // Grid
+  ctx.strokeStyle = 'rgba(0,240,255,0.08)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    const y = (h / 4) * i;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+  // Line
+  const grad = ctx.createLinearGradient(0, 0, w, 0);
+  grad.addColorStop(0, '#00f0ff');
+  grad.addColorStop(1, '#00ff88');
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#00f0ff';
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = (w / (points - 1)) * i;
+    const y = h - v * h * 0.8 - 10;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  // Fill
+  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+  const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
+  fillGrad.addColorStop(0, 'rgba(0,240,255,0.25)');
+  fillGrad.addColorStop(1, 'rgba(0,240,255,0)');
+  ctx.fillStyle = fillGrad;
+  ctx.fill();
+}
+
+function populateModalLog(node) {
+  const log = $('#modal-log');
+  const msgs = [
+    { cls: 'ok', msg: `[${node.code}] 节点心跳正常` },
+    { cls: 'info', msg: `[${node.code}] 数据同步批次 #${randInt(10000,99999)} 完成` },
+    { cls: 'ok', msg: `[${node.code}] 校验通过: Merkle root 一致` },
+    { cls: 'data', msg: `[${node.code}] 吞吐量峰值: ${node.throughput}` },
+    { cls: 'info', msg: `[${node.code}] 连接数: ${randInt(1000,9999)}` },
+  ];
+  log.innerHTML = msgs.map((m, i) => {
+    const t = `${padZero(12 + i)}:${padZero(randInt(0,59))}:${padZero(randInt(0,59))}`;
+    return `<div class="log-line ${m.cls}"><span class="ts">[${t}]</span> <span class="msg">${m.msg}</span></div>`;
+  }).join('');
+}
+
+/* ========== DATA SOURCES ========== */
+const sources = [
+  { icon: '🌌', name: '宇宙微波背景辐射 (CMB)', rate: '2.4M/s', bandwidth: '840 TB/s', status: 'active' },
+  { icon: '🌊', name: '引力波探测器网络', rate: '840K/s', bandwidth: '280 TB/s', status: 'active' },
+  { icon: '🔭', name: '系外行星望远镜阵列', rate: '1.2M/s', bandwidth: '420 TB/s', status: 'active' },
+  { icon: '🔮', name: '暗物质探测阵列', rate: '560K/s', bandwidth: '160 TB/s', status: 'active' },
+  { icon: '⚛', name: '量子纠缠传感器', rate: '3.6M/s', bandwidth: '1.2 PB/s', status: 'active' },
+  { icon: '🧬', name: '生命信号扫描器', rate: '320K/s', bandwidth: '80 TB/s', status: 'active' },
+];
+function renderSources() {
+  $('#source-list').innerHTML = sources.map(s => `
+    <div class="source-item">
+      <div class="icon">${s.icon}</div>
+      <div class="name">${s.name}</div>
+      <div class="rate">${s.rate}</div>
+      <div class="bandwidth">${s.bandwidth}</div>
+      <div class="status active">● 采集中</div>
+    </div>
+  `).join('');
+}
+
+/* ========== TERMINAL LOGS ========== */
+const logPhrases = {
+  overview: [
+    { cls: 'ok', msg: 'CMB 数据帧接收正常 · ΔT 稳定在 2.72548 K' },
+    { cls: 'data', msg: '新发现系外行星 Kepler-452c · 位于宜居带' },
+    { cls: 'info', msg: '引力波事件 GW-2026-0822-047 已确认' },
+    { cls: 'ok', msg: '暗物质分布图谱更新 · 误差 0.02%' },
+    { cls: 'warn', msg: '太阳活动中等 · 粒子流量+12%' },
+    { cls: 'data', msg: '仙女座方向检测到异常 γ 射线暴' },
+    { cls: 'ok', msg: '量子纠缠对 1,024,000 对全部在线' },
+    { cls: 'info', msg: '宇宙膨胀速率校准完成 · H₀ = 73.04' },
+    { cls: 'data', msg: '生命信号: 半人马座α 方向检测到周期性脉冲' },
+    { cls: 'ok', msg: '全节点数据一致性校验通过: 99.9997%' },
+  ],
+  collect: [
+    { cls: 'info', msg: '[CMB-01] 接收数据帧 #2847593 · 2.4M 采样点' },
+    { cls: 'ok', msg: '[GRAV-WAVE] LIGO-Livingston 锁定中' },
+    { cls: 'info', msg: '[EXOPLANET] JWST 曝光完成 · 1200s' },
+    { cls: 'data', msg: '[DARK-MATTER] 反冲事件计数: 3 次/小时' },
+    { cls: 'ok', msg: '[QUANTUM] 纠缠保真度: 99.97%' },
+    { cls: 'warn', msg: '[BIO-SCAN] 频段 1.42GHz 有微弱调制信号' },
+    { cls: 'info', msg: '[CMB-01] 偏振数据 E-mode 解析完成' },
+    { cls: 'ok', msg: '[GRAV-WAVE] Virgo 干涉仪同步完成' },
+    { cls: 'data', msg: '[EXOPLANET] 新候选体 TOI-789b 标记' },
+    { cls: 'info', msg: '[QUANTUM] 量子纠错码 运行正常' },
+  ],
+  sync: [
+    { cls: 'ok', msg: '[EARTH ↔ LUNA] 增量同步完成 · 2.3M 记录' },
+    { cls: 'info', msg: '[MW-CORE → M31] 量子态传输中 · 42%' },
+    { cls: 'ok', msg: '[MARS → JUPITER] Merkle 树校验通过' },
+    { cls: 'warn', msg: '[SATURN-07] 节点维护中 · 延迟同步' },
+    { cls: 'ok', msg: '[KUIPER → EARTH] 深空回传 128KB/s' },
+    { cls: 'info', msg: '[EDGE-Ω] 宇宙边缘探测数据回传中' },
+    { cls: 'ok', msg: '[QEH-Ω] 全局量子共识达成 · 轮次 #92834' },
+    { cls: 'ok', msg: '[OORT-01] 哨站心跳正常' },
+    { cls: 'warn', msg: '[ANDROMEDA] 检测到时间膨胀偏移 · 已修正' },
+    { cls: 'info', msg: '[DM-OBS] 数据校验 · 无冲突' },
+  ],
+  panel: [
+    { cls: 'ok', msg: '[EARTH-01] 同步完成 · 2.8M 条记录' },
+    { cls: 'ok', msg: '[LUNA-01] 备份完成 · 840TB 数据' },
+    { cls: 'info', msg: '[MARS-01] 边缘计算同步中' },
+    { cls: 'ok', msg: '[MW-CORE] 核心节点广播完成' },
+    { cls: 'warn', msg: '[SATURN-07] 维护模式 · 暂不同步' },
+  ],
+};
+
+function appendLog(elId, category) {
+  const el = $(elId);
+  if (!el) return;
+  const pool = logPhrases[category] || logPhrases.overview;
+  const entry = pool[randInt(0, pool.length - 1)];
+  const now = new Date();
+  const t = `${padZero(now.getHours())}:${padZero(now.getMinutes())}:${padZero(now.getSeconds())}`;
+  const line = document.createElement('div');
+  line.className = `log-line ${entry.cls}`;
+  line.innerHTML = `<span class="ts">[${t}]</span> <span class="msg">${entry.msg}</span>`;
+  el.appendChild(line);
+  if (el.children.length > 100) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+function appendSyncPanelLog() {
+  const el = $('#sync-panel-body');
+  const pool = logPhrases.panel;
+  const entry = pool[randInt(0, pool.length - 1)];
+  const now = new Date();
+  const t = `${padZero(now.getHours())}:${padZero(now.getMinutes())}:${padZero(now.getSeconds())}`;
+  const line = document.createElement('div');
+  line.className = `sync-log-line ${entry.cls === 'ok' ? 'ok' : entry.cls === 'warn' ? 'warn' : ''}`;
+  line.innerHTML = `<span class="ts">${t}</span> <span class="msg">${entry.msg}</span>`;
+  el.appendChild(line);
+  if (el.children.length > 40) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ========== CHARTS ========== */
+// Pie chart for universe composition
+function drawPieChart(canvasId, data, cx, cy, r) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = canvas.offsetHeight * 2;
+  ctx.scale(2, 2);
+  const w = canvas.offsetWidth, h = canvas.offsetHeight;
+  ctx.clearRect(0, 0, w, h);
+
+  let start = -Math.PI / 2;
+  const total = data.reduce((s, d) => s + d.value, 0);
+  data.forEach(d => {
+    const angle = (d.value / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, start + angle);
+    ctx.closePath();
+    ctx.fillStyle = d.color;
+    ctx.shadowColor = d.color;
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    start += angle;
+  });
+  ctx.shadowBlur = 0;
+  // Inner hole for donut
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(3, 10, 22, 0.95)';
+  ctx.fill();
+  // Center text
+  ctx.fillStyle = '#00f0ff';
+  ctx.font = 'bold 18px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('∞', cx, cy - 6);
+  ctx.fillStyle = '#6a90b5';
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.fillText('UNIVERSE', cx, cy + 12);
+}
+
+// Line chart
+function drawLineChart(canvasId, data, opts = {}) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = canvas.offsetHeight * 2;
+  ctx.scale(2, 2);
+  const w = canvas.offsetWidth, h = canvas.offsetHeight;
+  const pad = opts.pad || { l: 40, r: 10, t: 10, b: 24 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(0,240,255,0.07)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (ch / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + cw, y); ctx.stroke();
+  }
+  // Y axis labels
+  ctx.fillStyle = '#3d5a78';
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  const maxV = Math.max(...data) * 1.1;
+  const minV = Math.min(...data) * 0.9;
+  for (let i = 0; i <= 4; i++) {
+    const v = maxV - ((maxV - minV) / 4) * i;
+    const y = pad.t + (ch / 4) * i;
+    ctx.fillText(v.toFixed(opts.decimals || 1), pad.l - 4, y);
+  }
+
+  // X labels
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const xLabels = opts.xLabels || [];
+  if (xLabels.length) {
+    const step = Math.max(1, Math.floor(data.length / 5));
+    for (let i = 0; i < data.length; i += step) {
+      const x = pad.l + (cw / (data.length - 1)) * i;
+      ctx.fillText(xLabels[i] || '', x, pad.t + ch + 4);
+    }
+  }
+
+  // Line
+  const color1 = opts.color1 || '#00f0ff';
+  const color2 = opts.color2 || '#00ff88';
+  const grad = ctx.createLinearGradient(pad.l, 0, pad.l + cw, 0);
+  grad.addColorStop(0, color1);
+  grad.addColorStop(1, color2);
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = color1;
+  ctx.shadowBlur = 4;
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = pad.l + (cw / (data.length - 1)) * i;
+    const y = pad.t + ch - ((v - minV) / (maxV - minV)) * ch;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Fill
+  const lastX = pad.l + cw;
+  const lastY = pad.t + ch - ((data[data.length - 1] - minV) / (maxV - minV)) * ch;
+  ctx.lineTo(lastX, pad.t + ch);
+  ctx.lineTo(pad.l, pad.t + ch);
+  ctx.closePath();
+  const fillGrad = ctx.createLinearGradient(0, pad.t, 0, pad.t + ch);
+  fillGrad.addColorStop(0, color1 + '33');
+  fillGrad.addColorStop(1, color1 + '00');
+  ctx.fillStyle = fillGrad;
+  ctx.fill();
+}
+
+// Bar chart
+function drawBarChart(canvasId, labels, values, opts = {}) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = canvas.offsetHeight * 2;
+  ctx.scale(2, 2);
+  const w = canvas.offsetWidth, h = canvas.offsetHeight;
+  const pad = { l: 40, r: 10, t: 10, b: 28 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  ctx.clearRect(0, 0, w, h);
+  const maxV = Math.max(...values) * 1.15;
+  const barW = cw / labels.length * 0.55;
+  const gap = cw / labels.length * 0.45;
+
+  labels.forEach((label, i) => {
+    const x = pad.l + gap / 2 + (cw / labels.length) * i;
+    const barH = (values[i] / maxV) * ch;
+    const y = pad.t + ch - barH;
+
+    const grad = ctx.createLinearGradient(0, y, 0, y + barH);
+    grad.addColorStop(0, opts.color || '#00f0ff');
+    grad.addColorStop(1, (opts.color || '#00f0ff') + '33');
+    ctx.fillStyle = grad;
+    ctx.shadowColor = opts.color || '#00f0ff';
+    ctx.shadowBlur = 4;
+    ctx.fillRect(x, y, barW, barH);
+    ctx.shadowBlur = 0;
+
+    // Value
+    ctx.fillStyle = '#00f0ff';
+    ctx.font = '9px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(values[i], x + barW / 2, y - 2);
+
+    // Label
+    ctx.fillStyle = '#6a90b5';
+    ctx.font = '9px JetBrains Mono, monospace';
+    ctx.textBaseline = 'top';
+    ctx.fillText(label, x + barW / 2, pad.t + ch + 4);
+  });
+
+  // Y grid
+  ctx.strokeStyle = 'rgba(0,240,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 3; i++) {
+    const y = pad.t + (ch / 3) * i;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + cw, y); ctx.stroke();
+  }
+}
+
+function initCharts() {
+  // Composition pie
+  const pieCanvas = $('#pie-composition');
+  if (pieCanvas) {
+    drawPieChart('pie-composition', [
+      { value: 68.3, color: '#ff2d95' },
+      { value: 26.8, color: '#00f0ff' },
+      { value: 4.9, color: '#00ff88' },
+    ], pieCanvas.offsetWidth * 0.65, pieCanvas.offsetHeight / 2, Math.min(pieCanvas.offsetWidth * 0.25, pieCanvas.offsetHeight * 0.4));
+  }
+
+  // Expansion mini
+  drawLineChart('chart-expansion',
+    Array.from({ length: 20 }, (_, i) => 60 + i * 0.7 + Math.sin(i * 0.5) * 2),
+    { color1: '#00f0ff', color2: '#00ff88', decimals: 0 }
+  );
+
+  // Energy mini
+  drawBarChart('chart-energy',
+    ['恒星', '黑洞', '暗能', 'CMB'],
+    [412, 89, 683, 0.25],
+    { color: '#00f0ff' }
+  );
+  // Fix energy bar chart - replace with line
+  const energyCanvas = $('#chart-energy');
+  if (energyCanvas) {
+    const ctx = energyCanvas.getContext('2d');
+    energyCanvas.width = energyCanvas.offsetWidth * 2;
+    energyCanvas.height = energyCanvas.offsetHeight * 2;
+    ctx.scale(2, 2);
+    drawLineChart('chart-energy',
+      Array.from({ length: 15 }, (_, i) => 400 + Math.sin(i * 0.7) * 30 + i * 1.2),
+      { color1: '#ff2d95', color2: '#ffb020', decimals: 0 }
+    );
+  }
+
+  // Life mini
+  drawLineChart('chart-life',
+    Array.from({ length: 20 }, (_, i) => Math.pow(i / 19, 2.5) * 100),
+    { color1: '#00ff88', color2: '#00f0ff', decimals: 1 }
+  );
+
+  // Expansion trend (big)
+  drawLineChart('chart-expand-trend',
+    Array.from({ length: 30 }, (_, i) => {
+      const t = i / 29;
+      return 100 * (1 + Math.pow(t, 1.5) * 8 + Math.sin(i * 0.4) * 0.5);
+    }),
+    {
+      color1: '#00f0ff', color2: '#ff2d95', decimals: 0,
+      xLabels: ['13.8Gya', '10Gya', '5Gya', 'Now', '∞'],
+    }
+  );
+
+  // Matter-energy pie
+  const meCanvas = $('#chart-matter-energy');
+  if (meCanvas) {
+    drawPieChart('chart-matter-energy', [
+      { value: 68.3, color: '#ff2d95' },
+      { value: 26.8, color: '#00f0ff' },
+      { value: 4.9, color: '#00ff88' },
+    ], meCanvas.offsetWidth * 0.5, meCanvas.offsetHeight / 2, Math.min(meCanvas.offsetWidth * 0.28, meCanvas.offsetHeight * 0.38));
+  }
+
+  // Energy bar chart
+  drawBarChart('chart-energy-bar',
+    ['恒星', '星系', '黑洞', '暗能', '辐射'],
+    [380, 156, 89, 683, 0.3],
+    { color: '#ffb020' }
+  );
+
+  // Heatmap
+  initHeatmap();
+}
+
+/* ========== HEATMAP ========== */
+function initHeatmap() {
+  const grid = $('#galaxy-heatmap');
+  if (!grid) return;
+  let cells = '';
+  for (let i = 0; i < 96; i++) {
+    const intensity = Math.pow(Math.random(), 1.5);
+    const r = Math.floor(0 + intensity * 0);
+    const g = Math.floor(100 + intensity * 155);
+    const b = Math.floor(255 - intensity * 100);
+    cells += `<div class="heat-cell" style="background:rgba(0,${g},${255},${0.1 + intensity * 0.9});box-shadow:0 0 ${intensity * 6}px rgba(0,240,255,${intensity * 0.5})"></div>`;
+  }
+  grid.innerHTML = cells;
+}
+
+/* ========== TOPOLOGY ========== */
+function drawTopology() {
+  const canvas = $('#topology-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  const w = canvas.width, h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Nodes positioned in a mesh
+  const topoNodes = [
+    { x: w * 0.5, y: h * 0.5, label: 'QEH-Ω', color: '#ff2d95', size: 14, core: true },
+    { x: w * 0.25, y: h * 0.3, label: 'EARTH', color: '#00ff88', size: 10 },
+    { x: w * 0.75, y: h * 0.3, label: 'M31', color: '#00f0ff', size: 10 },
+    { x: w * 0.15, y: h * 0.65, label: 'MARS', color: '#00ff88', size: 9 },
+    { x: w * 0.35, y: h * 0.75, label: 'LUNA', color: '#00ff88', size: 8 },
+    { x: w * 0.65, y: h * 0.75, label: 'MW-CORE', color: '#00f0ff', size: 10 },
+    { x: w * 0.85, y: h * 0.65, label: 'JUPITER', color: '#ffb020', size: 9 },
+    { x: w * 0.5, y: h * 0.15, label: 'EDGE-Ω', color: '#ffb020', size: 8 },
+    { x: w * 0.1, y: h * 0.4, label: 'KUIPER', color: '#00ff88', size: 7 },
+    { x: w * 0.9, y: h * 0.4, label: 'SATURN', color: '#ffb020', size: 7 },
+  ];
+
+  // Draw connections
+  ctx.lineWidth = 1;
+  topoNodes.forEach((n, i) => {
+    topoNodes.forEach((m, j) => {
+      if (i >= j) return;
+      // Connect nodes that are close enough or to core
+      const dist = Math.hypot(n.x - m.x, n.y - m.y);
+      if (n.core || m.core || dist < Math.min(w, h) * 0.35) {
+        const grad = ctx.createLinearGradient(n.x, n.y, m.x, m.y);
+        grad.addColorStop(0, n.color + '80');
+        grad.addColorStop(1, m.color + '80');
+        ctx.strokeStyle = grad;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(n.x, n.y);
+        ctx.lineTo(m.x, m.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    });
+  });
+
+  // Draw packets moving
+  const time = Date.now() / 1000;
+  topoNodes.forEach((n, i) => {
+    topoNodes.forEach((m, j) => {
+      if (i >= j) return;
+      const dist = Math.hypot(n.x - m.x, n.y - m.y);
+      if (n.core || m.core || dist < Math.min(w, h) * 0.35) {
+        const progress = (time * 0.3 + i * 0.7 + j * 0.3) % 1;
+        const px = n.x + (m.x - n.x) * progress;
+        const py = n.y + (m.y - n.y) * progress;
+        ctx.beginPath();
+        ctx.arc(px, py, 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#00f0ff';
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    });
+  });
+
+  // Draw nodes
+  topoNodes.forEach(n => {
+    // Outer glow ring
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.size + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = n.color + '40';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Node circle
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.size, 0, Math.PI * 2);
+    ctx.fillStyle = n.color;
+    ctx.shadowColor = n.color;
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Inner dot
+    if (n.core) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.size * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    }
+
+    // Label
+    ctx.fillStyle = '#d4f1ff';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(n.label, n.x, n.y + n.size + 4);
+  });
+
+  requestAnimationFrame(drawTopology);
+}
+
+/* ========== ACCESS ENTRIES ========== */
+const accessEntries = [
+  { platform: '地球主站', ico: '🌍', url: 'https://urd.earth/v1/dashboard', protocol: 'HTTPS/3', encrypt: 'AES-256 + QKD', load: '67%', connections: '2.84M', status: 'online' },
+  { platform: '月球备份门户', ico: '🌙', url: 'https://urd.luna/v1/portal', protocol: 'Quantum Tunnel', encrypt: '量子纠缠加密', load: '23%', connections: '840K', status: 'online' },
+  { platform: '火星边缘接入', ico: '🔴', url: 'https://urd.mars/v1/edge-api', protocol: 'DTN + IPN', encrypt: 'RSA-4096', load: '41%', connections: '120K', status: 'online' },
+  { platform: '木星计算网格', ico: '🟠', url: 'https://urd.jupiter/v1/compute', protocol: 'HPC fabric', encrypt: '同态加密', load: '78%', connections: '56K', status: 'online' },
+  { platform: '银河系核心', ico: '🌌', url: 'https://urd.milkyway-core.gov', protocol: 'Wormhole Relay', encrypt: '量子端到端', load: '92%', connections: '4.2M', status: 'online' },
+  { platform: '仙女座中继', ico: '🌀', url: 'https://urd.m31-andromeda.net', protocol: 'Quantum Entangled', encrypt: 'QKD + post-quantum', load: '55%', connections: '1.8M', status: 'online' },
+  { platform: '宇宙边缘探测', ico: '🌠', url: 'https://urd.edge.cosmos/explorer', protocol: 'Tachyon Stream', encrypt: '∞ 层加密', load: '34%', connections: '84K', status: 'sync' },
+  { platform: '暗物质观测站', ico: '🔮', url: 'https://urd.dm-observatory.deep', protocol: 'Neutrino Link', encrypt: '弱相互作用加密', load: '61%', connections: '320K', status: 'online' },
+];
+function renderAccess() {
+  $('#access-grid').innerHTML = accessEntries.map(e => `
+    <div class="access-card">
+      <div class="access-header">
+        <div class="access-platform"><span class="ico">${e.ico}</span> ${e.platform}</div>
+        <div class="access-indicator" style="background:${e.status === 'online' ? 'var(--green)' : 'var(--amber)'};box-shadow:0 0 8px ${e.status === 'online' ? 'var(--green)' : 'var(--amber)'}"></div>
+      </div>
+      <div class="access-url">
+        <span>${e.url}</span>
+        <span class="copy-btn" data-url="${e.url}">复制</span>
+      </div>
+      <div class="access-meta">
+        <div class="meta-item">
+          <span class="meta-label">协议</span>
+          <span class="meta-val">${e.protocol}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">加密等级</span>
+          <span class="meta-val">${e.encrypt}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">负载 / 连接</span>
+          <span class="meta-val">${e.load} · ${e.connections}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  $$('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard?.writeText(btn.dataset.url);
+      showToast('地址已复制到剪贴板');
+    });
+  });
+}
+
+/* ========== ALERTS ========== */
+const alerts = [
+  { severity: 'critical', desc: 'GW-2026-0822-∞ 异常引力波事件', node: '仙女座中继节点', time: '12:34:17', status: '调查中' },
+  { severity: 'critical', desc: '暗物质分布出现局部异常涨落', node: '暗物质观测站', time: '12:28:03', status: '未确认' },
+  { severity: 'warning', desc: '土星环存储阵列 07 号节点维护延迟', node: '土星环存储阵列', time: '11:45:22', status: '处理中' },
+  { severity: 'warning', desc: '太阳风粒子流量超出阈值 +18%', node: '地球主节点', time: '10:12:08', status: '已确认' },
+  { severity: 'warning', desc: '火星边缘节点同步滞后 4.2 分钟', node: '火星边缘节点', time: '09:33:51', status: '已处理' },
+  { severity: 'info', desc: '新发现 47 颗系外行星候选体', node: '系外行星望远镜', time: '08:17:44', status: '已确认' },
+  { severity: 'info', desc: '量子纠缠对校准周期完成', node: '量子纠缠枢纽', time: '06:00:00', status: '已处理' },
+  { severity: 'info', desc: '宇宙微波背景数据日更新完成', node: '地球主节点', time: '00:00:00', status: '已处理' },
+  { severity: 'warning', desc: '柯伊伯带网关信号衰减 3dB', node: '柯伊伯带网关', time: '23:41:19', status: '监控中' },
+  { severity: 'critical', desc: '奥尔特云哨站检测到未知深空信号', node: '奥尔特云哨站', time: '22:05:37', status: '调查中' },
+];
+function renderAlerts(filter = 'all') {
+  const filtered = alerts.filter(a => {
+    if (filter === 'all') return true;
+    if (filter === 'unresolved') return a.status !== '已处理' && a.status !== '已确认';
+    return a.severity === filter;
+  });
+  $('#alert-list').innerHTML = filtered.map((a, i) => `
+    <div class="alert-item ${a.severity === 'warning' ? 'warning' : a.severity === 'info' ? 'info' : ''}">
+      <div class="alert-severity">${a.severity === 'critical' ? '严重' : a.severity === 'warning' ? '警告' : '信息'}</div>
+      <div class="alert-desc">${a.desc}</div>
+      <div class="alert-node">${a.node}</div>
+      <div class="alert-time">2026.08.22 ${a.time}</div>
+      <div class="alert-status">${a.status}</div>
+      <div class="alert-action" data-i="${i}">确认</div>
+    </div>
+  `).join('');
+  $$('.alert-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      showToast('告警已确认');
+    });
+  });
+}
+
+function renderAnalysisAlerts() {
+  const top = alerts.slice(0, 4);
+  $('#analysis-alerts').innerHTML = top.map(a => `
+    <div class="alert-item ${a.severity === 'warning' ? 'warning' : a.severity === 'info' ? 'info' : ''}">
+      <div class="alert-severity">${a.severity === 'critical' ? '严重' : a.severity === 'warning' ? '警告' : '信息'}</div>
+      <div class="alert-desc">${a.desc}</div>
+      <div class="alert-node">${a.node}</div>
+      <div class="alert-time">${a.time}</div>
+      <div class="alert-status">${a.status}</div>
+      <div class="alert-action">查看</div>
+    </div>
+  `).join('');
+}
+
+function initAlertFilter() {
+  $$('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      $$('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderAlerts(chip.dataset.filter);
+    });
+  });
+}
+
+/* ========== LIVE UPDATE LOOP ========== */
+function startLiveUpdates() {
+  // Log updates
+  setInterval(() => appendLog('#overview-log', 'overview'), 2500);
+  setInterval(() => appendLog('#collect-log', 'collect'), 2000);
+  setInterval(() => appendLog('#sync-log', 'sync'), 3000);
+  setInterval(appendSyncPanelLog, 3500);
+
+  // Number tweaks
+  setInterval(() => {
+    const tps = (2.8 + Math.random() * 0.1).toFixed(2);
+    $('#stat-tps').textContent = tps + 'M';
+    const online = randInt(980, 995);
+    $('#stat-online').textContent = online.toLocaleString();
+    const queue = randInt(2500, 3200);
+    const sq = $('#sync-queue');
+    if (sq) sq.textContent = queue.toLocaleString();
+    const packets = (2.7 + Math.random() * 0.3).toFixed(2);
+    const mp = $('#metric-packets');
+    if (mp) mp.textContent = packets + 'M';
+  }, 2000);
+
+  // Clock
+  setInterval(updateClock, 1000);
+  updateClock();
+}
+
+/* ========== FLOATING PANEL ========== */
+function initSyncPanel() {
+  $('#sync-panel-toggle').addEventListener('click', () => {
+    $('#sync-panel').classList.toggle('collapsed');
+  });
+}
+
+/* ========== BROADCAST ========== */
+function initBroadcast() {
+  $('#broadcast-close').addEventListener('click', () => {
+    $('#broadcast').classList.remove('visible');
+  });
+  setTimeout(() => {
+    $('#broadcast').classList.add('visible');
+  }, 5000);
+  // Reappear periodically
+  setInterval(() => {
+    if (Math.random() > 0.7) {
+      $('#broadcast').classList.add('visible');
+    }
+  }, 60000);
+}
+
+/* ========== RESIZE ========== */
+function initResize() {
+  window.addEventListener('resize', () => {
+    initStars();
+    // Re-draw charts
+    setTimeout(() => {
+      initCharts();
+    }, 100);
+  });
+}
+
+/* ========== INIT ========== */
+function initApp() {
+  initHeroNumbers();
+  initTabs();
+  renderNodes();
+  renderSources();
+  renderAccess();
+  renderAlerts();
+  renderAnalysisAlerts();
+  initAlertFilter();
+  initSyncPanel();
+  initBroadcast();
+  initCharts();
+  initResize();
+  startLiveUpdates();
+
+  // Upgrade announcement
+}
+
+/* ========== BOOT ========== */
+window.addEventListener('load', () => {
+  initStars();
+  drawStars();
+  runBoot();
+});
+</script>
+</body>
+</html>
